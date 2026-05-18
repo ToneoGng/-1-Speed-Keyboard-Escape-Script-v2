@@ -32,7 +32,7 @@ else
 	end)
 end
 
-local FlySpeed = 125
+local FlySpeed = 16
 local LoopTour = true
 local LoopDelay = 0.65
 local AutoRespawn = false
@@ -69,6 +69,27 @@ RunService.Heartbeat:Connect(function()
 		hum:Move(camera.CFrame.LookVector, false)
 	end
 end)
+
+local function UpdateDynamicSpeed()
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	if hum then
+		FlySpeed = hum.WalkSpeed + 10
+	end
+end
+
+local function SetupSpeedListener(char)
+	local hum = char:WaitForChild("Humanoid", 10)
+	if hum then
+		hum:GetPropertyChangedSignal("WalkSpeed"):Connect(UpdateDynamicSpeed)
+		UpdateDynamicSpeed()
+	end
+end
+
+player.CharacterAdded:Connect(SetupSpeedListener)
+if player.Character then
+	task.spawn(SetupSpeedListener, player.Character)
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "ToniUI"
@@ -380,8 +401,8 @@ afkOverlay.ZIndex = 500
 afkOverlay.Visible = false
 
 local afkCenteredContainer = Instance.new("Frame", afkOverlay)
-afkCenteredContainer.Size = UDim2.new(0, 580, 0, 440)
-afkCenteredContainer.Position = UDim2.new(0.5, -290, 0.5, -220)
+afkCenteredContainer.Size = UDim2.new(0, 580, 0, 490)
+afkCenteredContainer.Position = UDim2.new(0.5, -290, 0.5, -245)
 afkCenteredContainer.BackgroundTransparency = 1
 
 local afkTitle = Instance.new("TextLabel", afkCenteredContainer)
@@ -403,7 +424,7 @@ afkSub.Font = Enum.Font.GothamMedium
 afkSub.TextSize = 13
 
 local statsBox = Instance.new("Frame", afkCenteredContainer)
-statsBox.Size = UDim2.new(1, 0, 0, 240)
+statsBox.Size = UDim2.new(1, 0, 0, 290)
 statsBox.Position = UDim2.new(0, 0, 0, 100)
 statsBox.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 statsBox.BorderSizePixel = 0
@@ -411,40 +432,41 @@ Instance.new("UICorner", statsBox).CornerRadius = UDim.new(0, 14)
 
 local function CreateGiantStatRow(parent, labelText, initialValue, yOffset, isAccent)
 	local rowFrame = Instance.new("Frame", parent)
-	rowFrame.Size = UDim2.new(1, -40, 0, 60)
+	rowFrame.Size = UDim2.new(1, -40, 0, 50)
 	rowFrame.Position = UDim2.new(0, 20, 0, yOffset)
 	rowFrame.BackgroundTransparency = 1
 
 	local label = Instance.new("TextLabel", rowFrame)
-	label.Size = UDim2.new(0.4, 0, 1, 0)
+	label.Size = UDim2.new(0.5, 0, 1, 0)
 	label.Position = UDim2.new(0, 0, 0, 0)
 	label.BackgroundTransparency = 1
 	label.Text = labelText
 	label.TextColor3 = Color3.fromRGB(140, 145, 160)
 	label.Font = Enum.Font.GothamBold
-	label.TextSize = 16
+	label.TextSize = 14
 	label.TextXAlignment = Enum.TextXAlignment.Left
 
 	local value = Instance.new("TextLabel", rowFrame)
-	value.Size = UDim2.new(0.6, 0, 1, 0)
-	value.Position = UDim2.new(0.4, 0, 0, 0)
+	value.Size = UDim2.new(0.5, 0, 1, 0)
+	value.Position = UDim2.new(0.5, 0, 0, 0)
 	value.BackgroundTransparency = 1
 	value.Text = initialValue
 	value.TextColor3 = isAccent and Color3.fromRGB(0, 255, 200) or Color3.fromRGB(255, 255, 255)
 	value.Font = Enum.Font.GothamBlack
-	value.TextSize = 24
+	value.TextSize = 20
 	value.TextXAlignment = Enum.TextXAlignment.Right
 
 	return value
 end
 
 local timeValueLabel = CreateGiantStatRow(statsBox, "TIME ELAPSED", "00:00:00", 20, false)
-local currentWinsLabel = CreateGiantStatRow(statsBox, "CURRENT TOTAL WINS", "0", 90, false)
-local gainedWinsLabel = CreateGiantStatRow(statsBox, "SESSION WINS GAINED", "+0", 160, true)
+local currentWinsLabel = CreateGiantStatRow(statsBox, "CURRENT TOTAL WINS", "0", 85, false)
+local gainedWinsLabel = CreateGiantStatRow(statsBox, "SESSION WINS GAINED", "+0", 150, true)
+local dynamicFlySpeedLabel = CreateGiantStatRow(statsBox, "CURRENT ENGINE SPEED", "0", 215, true)
 
 local exitAfkBtn = Instance.new("TextButton", afkCenteredContainer)
 exitAfkBtn.Size = UDim2.new(1, 0, 0, 54)
-exitAfkBtn.Position = UDim2.new(0, 0, 0, 365)
+exitAfkBtn.Position = UDim2.new(0, 0, 0, 415)
 exitAfkBtn.BackgroundColor3 = Color3.fromRGB(170, 35, 35)
 exitAfkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 exitAfkBtn.Font = Enum.Font.GothamBlack
@@ -510,6 +532,7 @@ local function UpdateAFKStats()
 		currentWinsLabel.Text = "N/A"
 		gainedWinsLabel.Text = "+0"
 	end
+	dynamicFlySpeedLabel.Text = tostring(math.floor(FlySpeed))
 end
 
 afkBtn.MouseButton1Click:Connect(function()
@@ -521,6 +544,7 @@ afkBtn.MouseButton1Click:Connect(function()
 	
 	if winsValueObject then startWins = winsValueObject.Value end
 	UpdateAFKStats()
+	UpdateDynamicSpeed()
 	
 	if setfpscap then setfpscap(15) end
 	
@@ -578,6 +602,7 @@ local function StartAutoFly()
 				local posData = string.split(Checkpoints[i], ",")
 				local targetPos = Vector3.new(tonumber(posData[1]), tonumber(posData[2]), tonumber(posData[3]))
 				local dist = (rootPart.Position - targetPos).Magnitude
+				UpdateDynamicSpeed()
 				local speed = math.clamp(FlySpeed, 10, 500)
 				local timeToReach = dist / speed
 
@@ -594,6 +619,8 @@ local function StartAutoFly()
 				while isAutoFlying and t < (timeToReach + 2) and (rootPart.Position - targetPos).Magnitude > 5 do
 					local dt = task.wait()
 					t = t + dt
+					UpdateDynamicSpeed()
+					speed = math.clamp(FlySpeed, 10, 500)
 					local dir = (targetPos - rootPart.Position)
 					if dir.Magnitude > 0 then
 						bv.Velocity = dir.Unit * speed
