@@ -9,7 +9,7 @@
 Copy and paste the following loadstring into your executor:
 
 ```lua
-loadstring(game:HttpGet("[https://raw.githubusercontent.com/ToneoGng/-1-Speed-Keyboard-Escape-Script-v2/refs/heads/main/script.lua](https://raw.githubusercontent.com/ToneoGng/-1-Speed-Keyboard-Escape-Script-v2/refs/heads/main/script.lua)"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/ToneoGng/Script/refs/heads/main/script.lua"))()
 ```
 ---
 
