@@ -6,6 +6,9 @@ local VirtualUser = game:GetService("VirtualUser")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local StarterGui = game:GetService("StarterGui")
+local HttpService = game:GetService("HttpService")
+
+local requestFunc = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
 
 local player = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
@@ -14,8 +17,14 @@ local leaderstats = player:WaitForChild("leaderstats", 10)
 local winsValueObject = leaderstats and leaderstats:WaitForChild("Wins", 10)
 local startWins = winsValueObject and winsValueObject.Value or 0
 local afkStartTime = 0
+local scriptStartTime = os.time()
 local sessionTimerConnection = nil
 local hiddenGuis = {}
+
+local webhookUrl = ""
+local webhookEnabled = false
+local currentWebhookMessageId = nil
+local isScriptActive = true
 
 if getgenv then
 	if not getgenv().AntiAFK then
@@ -91,6 +100,50 @@ if player.Character then
 	task.spawn(SetupSpeedListener, player.Character)
 end
 
+local function SendOrUpdateWebhook(embedData, forceSend)
+	if (not webhookEnabled and not forceSend) or webhookUrl == "" or not requestFunc then return end
+	
+	local payload = { embeds = embedData }
+	
+	if currentWebhookMessageId then
+		local success, response = pcall(function()
+			return requestFunc({
+				Url = webhookUrl .. "/messages/" .. currentWebhookMessageId,
+				Method = "PATCH",
+				Headers = {["Content-Type"] = "application/json"},
+				Body = HttpService:JSONEncode(payload)
+			})
+		end)
+		
+		if success and response and response.StatusCode == 200 then
+			return
+		else
+			currentWebhookMessageId = nil
+		end
+	end
+	
+	if not currentWebhookMessageId then
+		local separator = string.find(webhookUrl, "?") and "&" or "?"
+		local success, response = pcall(function()
+			return requestFunc({
+				Url = webhookUrl .. separator .. "wait=true",
+				Method = "POST",
+				Headers = {["Content-Type"] = "application/json"},
+				Body = HttpService:JSONEncode(payload)
+			})
+		end)
+		
+		if success and response and (response.StatusCode == 200 or response.StatusCode == 201) then
+			pcall(function()
+				local decoded = HttpService:JSONDecode(response.Body)
+				if decoded and decoded.id then
+					currentWebhookMessageId = decoded.id
+				end
+			end)
+		end
+	end
+end
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "ToniUI"
 gui.ResetOnSpawn = false
@@ -126,7 +179,7 @@ titleBar.ZIndex = 3
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 12)
 
 local titleLabel = Instance.new("TextLabel", titleBar)
-titleLabel.Size = UDim2.new(1, -50, 1, 0)
+titleLabel.Size = UDim2.new(1, -90, 1, 0)
 titleLabel.Position = UDim2.new(0, 14, 0, 0)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "✦  Auto WIN + AntiAFK"
@@ -153,6 +206,17 @@ destroyBtn.TextSize = 16
 destroyBtn.Text = "✕"
 destroyBtn.ZIndex = 10
 Instance.new("UICorner", destroyBtn).CornerRadius = UDim.new(0, 6)
+
+local webhookMenuBtn = Instance.new("TextButton", titleBar)
+webhookMenuBtn.Size = UDim2.new(0, 28, 0, 28)
+webhookMenuBtn.Position = UDim2.new(1, -74, 0.5, -14)
+webhookMenuBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+webhookMenuBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+webhookMenuBtn.Font = Enum.Font.GothamBlack
+webhookMenuBtn.TextSize = 14
+webhookMenuBtn.Text = "🌐"
+webhookMenuBtn.ZIndex = 10
+Instance.new("UICorner", webhookMenuBtn).CornerRadius = UDim.new(0, 6)
 
 local bodyFrame = Instance.new("Frame", mainPanel)
 bodyFrame.Size = UDim2.new(1, 0, 0, BODY_H)
@@ -392,6 +456,99 @@ infoCloseBtn.Text = "ACKNOWLEDGE AND CONTINUE"
 infoCloseBtn.ZIndex = 303
 Instance.new("UICorner", infoCloseBtn).CornerRadius = UDim.new(0, 10)
 
+local webhookScreen = Instance.new("Frame", gui)
+webhookScreen.Size = UDim2.new(1, 0, 1, 0)
+webhookScreen.Position = UDim2.new(0, 0, 0, 0)
+webhookScreen.BackgroundColor3 = Color3.fromRGB(6, 6, 10)
+webhookScreen.BorderSizePixel = 0
+webhookScreen.ZIndex = 400
+webhookScreen.Visible = false
+
+local webhookContainer = Instance.new("Frame", webhookScreen)
+webhookContainer.Size = UDim2.new(0, 460, 0, 380)
+webhookContainer.Position = UDim2.new(0.5, -230, 0.5, -190)
+webhookContainer.BackgroundColor3 = Color3.fromRGB(14, 14, 22)
+webhookContainer.BorderSizePixel = 0
+webhookContainer.ZIndex = 401
+Instance.new("UICorner", webhookContainer).CornerRadius = UDim.new(0, 14)
+
+local webhookTopLine = Instance.new("Frame", webhookContainer)
+webhookTopLine.Size = UDim2.new(1, 0, 0, 3)
+webhookTopLine.Position = UDim2.new(0, 0, 0, 0)
+webhookTopLine.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+webhookTopLine.BorderSizePixel = 0
+webhookTopLine.ZIndex = 402
+Instance.new("UICorner", webhookTopLine).CornerRadius = UDim.new(0, 14)
+
+local webhookTitle = Instance.new("TextLabel", webhookContainer)
+webhookTitle.Size = UDim2.new(1, 0, 0, 40)
+webhookTitle.Position = UDim2.new(0, 0, 0, 20)
+webhookTitle.BackgroundTransparency = 1
+webhookTitle.Text = "🌐  Webhook Configuration"
+webhookTitle.TextColor3 = Color3.fromRGB(88, 101, 242)
+webhookTitle.Font = Enum.Font.GothamBlack
+webhookTitle.TextSize = 22
+webhookTitle.ZIndex = 402
+
+local webhookUrlInput = Instance.new("TextBox", webhookContainer)
+webhookUrlInput.Size = UDim2.new(1, -40, 0, 45)
+webhookUrlInput.Position = UDim2.new(0, 20, 0, 80)
+webhookUrlInput.BackgroundColor3 = Color3.fromRGB(10, 10, 16)
+webhookUrlInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+webhookUrlInput.PlaceholderText = "Enter Discord Webhook URL here..."
+webhookUrlInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 115)
+webhookUrlInput.Font = Enum.Font.GothamMedium
+webhookUrlInput.TextSize = 13
+webhookUrlInput.Text = ""
+webhookUrlInput.ClearTextOnFocus = false
+webhookUrlInput.ZIndex = 403
+Instance.new("UICorner", webhookUrlInput).CornerRadius = UDim.new(0, 8)
+
+local webhookInfoLabel = Instance.new("TextLabel", webhookContainer)
+webhookInfoLabel.Size = UDim2.new(1, -40, 0, 40)
+webhookInfoLabel.Position = UDim2.new(0, 20, 0, 135)
+webhookInfoLabel.BackgroundTransparency = 1
+webhookInfoLabel.Text = "Sends an automated update every 60 seconds with your current Total Wins, Session Wins Gained, and Session Uptime."
+webhookInfoLabel.TextColor3 = Color3.fromRGB(150, 155, 170)
+webhookInfoLabel.Font = Enum.Font.Gotham
+webhookInfoLabel.TextSize = 12
+webhookInfoLabel.TextWrapped = true
+webhookInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+webhookInfoLabel.ZIndex = 403
+
+local toggleWebhookBtn = Instance.new("TextButton", webhookContainer)
+toggleWebhookBtn.Size = UDim2.new(1, -40, 0, 45)
+toggleWebhookBtn.Position = UDim2.new(0, 20, 0, 185)
+toggleWebhookBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 65)
+toggleWebhookBtn.TextColor3 = Color3.fromRGB(150, 155, 170)
+toggleWebhookBtn.Font = Enum.Font.GothamBlack
+toggleWebhookBtn.TextSize = 14
+toggleWebhookBtn.Text = "❌  WEBHOOK DISABLED"
+toggleWebhookBtn.ZIndex = 403
+Instance.new("UICorner", toggleWebhookBtn).CornerRadius = UDim.new(0, 8)
+
+local testWebhookBtn = Instance.new("TextButton", webhookContainer)
+testWebhookBtn.Size = UDim2.new(1, -40, 0, 45)
+testWebhookBtn.Position = UDim2.new(0, 20, 0, 240)
+testWebhookBtn.BackgroundColor3 = Color3.fromRGB(50, 55, 80)
+testWebhookBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+testWebhookBtn.Font = Enum.Font.GothamBlack
+testWebhookBtn.TextSize = 14
+testWebhookBtn.Text = "🧪  TEST WEBHOOK"
+testWebhookBtn.ZIndex = 403
+Instance.new("UICorner", testWebhookBtn).CornerRadius = UDim.new(0, 8)
+
+local webhookCloseBtn = Instance.new("TextButton", webhookContainer)
+webhookCloseBtn.Size = UDim2.new(1, -40, 0, 46)
+webhookCloseBtn.Position = UDim2.new(0, 20, 0, 305)
+webhookCloseBtn.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
+webhookCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+webhookCloseBtn.Font = Enum.Font.GothamBlack
+webhookCloseBtn.TextSize = 14
+webhookCloseBtn.Text = "SAVE & CLOSE"
+webhookCloseBtn.ZIndex = 403
+Instance.new("UICorner", webhookCloseBtn).CornerRadius = UDim.new(0, 10)
+
 local afkOverlay = Instance.new("Frame", gui)
 afkOverlay.Size = UDim2.new(1, 0, 1, 0)
 afkOverlay.Position = UDim2.new(0, 0, 0, 0)
@@ -569,6 +726,79 @@ exitAfkBtn.MouseButton1Click:Connect(function()
 	mainPanel.Visible = true
 end)
 
+webhookMenuBtn.MouseButton1Click:Connect(function()
+	mainPanel.Visible = false
+	webhookScreen.Visible = true
+	webhookUrlInput.Text = webhookUrl
+end)
+
+webhookUrlInput.FocusLost:Connect(function()
+	webhookUrl = webhookUrlInput.Text
+end)
+
+toggleWebhookBtn.MouseButton1Click:Connect(function()
+	webhookEnabled = not webhookEnabled
+	if webhookEnabled then
+		toggleWebhookBtn.Text = "✅  WEBHOOK ENABLED"
+		toggleWebhookBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 130)
+		toggleWebhookBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	else
+		toggleWebhookBtn.Text = "❌  WEBHOOK DISABLED"
+		toggleWebhookBtn.BackgroundColor3 = Color3.fromRGB(35, 40, 65)
+		toggleWebhookBtn.TextColor3 = Color3.fromRGB(150, 155, 170)
+	end
+end)
+
+testWebhookBtn.MouseButton1Click:Connect(function()
+	webhookUrl = webhookUrlInput.Text
+	if webhookUrl ~= "" then
+		local data = {{
+			["title"] = "🧪 Webhook Anchor Set",
+			["description"] = "Your webhook configuration is working perfectly. Future updates will be pushed directly to this message instead of creating new ones.",
+			["color"] = 5763719,
+			["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+		}}
+		SendOrUpdateWebhook(data, true)
+		
+		local oldText = testWebhookBtn.Text
+		testWebhookBtn.Text = "✅  TEST SENT"
+		task.delay(2, function()
+			testWebhookBtn.Text = oldText
+		end)
+	end
+end)
+
+webhookCloseBtn.MouseButton1Click:Connect(function()
+	webhookUrl = webhookUrlInput.Text
+	webhookScreen.Visible = false
+	mainPanel.Visible = true
+end)
+
+task.spawn(function()
+	while isScriptActive do
+		task.wait(60)
+		if not isScriptActive then break end
+		if webhookEnabled and webhookUrl ~= "" and requestFunc then
+			local currentWins = winsValueObject and winsValueObject.Value or 0
+			local gained = currentWins - startWins
+			local elapsed = os.time() - scriptStartTime
+			
+			local data = {{
+				["title"] = "🚀 Auto WIN + AntiAFK Status",
+				["color"] = 65480,
+				["fields"] = {
+					{["name"] = "🏆 Total Wins", ["value"] = FormatCompactNumber(currentWins), ["inline"] = true},
+					{["name"] = "📈 Session Wins Gained", ["value"] = "+" .. FormatCompactNumber(gained), ["inline"] = true},
+					{["name"] = "⏱️ Session Uptime", ["value"] = FormatTime(elapsed), ["inline"] = false}
+				},
+				["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+			}}
+			
+			SendOrUpdateWebhook(data, false)
+		end
+	end
+end)
+
 local function StopAutoFly()
 	isAutoFlying = false
 	SetWHeld(false)
@@ -579,6 +809,16 @@ local function StopAutoFly()
 	if humanoid then humanoid.PlatformStand = false end
 	btn.Text = "▶  Start Tour"
 	btn.BackgroundColor3 = Color3.fromRGB(0, 170, 130)
+	
+	if isScriptActive then
+		local data = {{
+			["title"] = "⏸️ Auto WIN Stopped",
+			["description"] = "The tour has been paused or stopped.",
+			["color"] = 15548997,
+			["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+		}}
+		SendOrUpdateWebhook(data, false)
+	end
 end
 
 local function StartAutoFly()
@@ -588,15 +828,23 @@ local function StartAutoFly()
 	btn.Text = "⏸  Stop Tour"
 	btn.BackgroundColor3 = Color3.fromRGB(180, 35, 35)
 
+	local data = {{
+		["title"] = "▶️ Auto WIN Started",
+		["description"] = "The tour has been initiated successfully.",
+		["color"] = 5763719,
+		["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+	}}
+	SendOrUpdateWebhook(data, false)
+
 	task.spawn(function()
-		while isAutoFlying do
+		while isAutoFlying and isScriptActive do
 			local char = player.Character or player.CharacterAdded:Wait()
 			local rootPart = char:WaitForChild("HumanoidRootPart")
 			local humanoid = char:WaitForChild("Humanoid")
 			local totalCPs = #Checkpoints
 
 			for i = 1, totalCPs do
-				if not isAutoFlying then break end
+				if not isAutoFlying or not isScriptActive then break end
 				if i <= totalCPs - 2 then SetWHeld(true) else SetWHeld(false) end
 
 				local posData = string.split(Checkpoints[i], ",")
@@ -616,7 +864,7 @@ local function StartAutoFly()
 				bg.P = 10000
 				bg.Parent = rootPart
 				local t = 0
-				while isAutoFlying and t < (timeToReach + 2) and (rootPart.Position - targetPos).Magnitude > 5 do
+				while isAutoFlying and isScriptActive and t < (timeToReach + 2) and (rootPart.Position - targetPos).Magnitude > 5 do
 					local dt = task.wait()
 					t = t + dt
 					UpdateDynamicSpeed()
@@ -631,10 +879,10 @@ local function StartAutoFly()
 				bg:Destroy()
 				rootPart.Velocity = Vector3.zero
 				rootPart.RotVelocity = Vector3.zero
-				if not isAutoFlying then break end
+				if not isAutoFlying or not isScriptActive then break end
 			end
 
-			if not isAutoFlying then break end
+			if not isAutoFlying or not isScriptActive then break end
 			humanoid.PlatformStand = false
 			rootPart.Anchored = false
 			SetWHeld(false)
@@ -652,18 +900,18 @@ local function StartAutoFly()
 				end
 			end
 
-			if not isAutoFlying then break end
+			if not isAutoFlying or not isScriptActive then break end
 			if AutoRespawn then
 				local rTimer = 0
-				while isAutoFlying and rTimer < RespawnDelay do
+				while isAutoFlying and isScriptActive and rTimer < RespawnDelay do
 					rTimer = rTimer + task.wait()
 				end
-				if not isAutoFlying then break end
+				if not isAutoFlying or not isScriptActive then break end
 				humanoid.Health = 0
 				local newChar = player.CharacterAdded:Wait()
 				local newRoot = newChar:WaitForChild("HumanoidRootPart")
 				local safeSpawnPos = Vector3.new(-0.28, 10.23, 2.96)
-				while isAutoFlying do
+				while isAutoFlying and isScriptActive do
 					if newRoot and newRoot.Parent then
 						if (newRoot.Position - safeSpawnPos).Magnitude <= 30 then break end
 					end
@@ -671,14 +919,16 @@ local function StartAutoFly()
 				end
 			end
 
-			if not isAutoFlying then break end
+			if not isAutoFlying or not isScriptActive then break end
 			if LoopTour then
 				if LoopDelay > 0 then task.wait(LoopDelay) end
 			else
 				break
 			end
 		end
-		StopAutoFly()
+		if isScriptActive then
+			StopAutoFly()
+		end
 	end)
 end
 
@@ -687,16 +937,34 @@ btn.MouseButton1Click:Connect(function()
 end)
 
 destroyBtn.MouseButton1Click:Connect(function()
+	isScriptActive = false
+
 	if sessionTimerConnection then sessionTimerConnection:Disconnect() end
 	if setfpscap then setfpscap(60) end
 	SetExternalUiVisible(true)
-	StopAutoFly()
+	
+	isAutoFlying = false
+	SetWHeld(false)
+	local char = player.Character
+	local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+	local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+	if rootPart then rootPart.Anchored = false; rootPart.Velocity = Vector3.zero end
+	if humanoid then humanoid.PlatformStand = false end
+
+	local data = {{
+		["title"] = "🛑 Script Terminated",
+		["description"] = "The Auto WIN UI and script have been fully closed.",
+		["color"] = 16711680,
+		["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+	}}
+	SendOrUpdateWebhook(data, false)
+
 	gui:Destroy()
 end)
 
 UserInputService.InputBegan:Connect(function(input, gp)
 	if gp then return end
-	if input.KeyCode == Enum.KeyCode.K and not afkOverlay.Visible and not infoScreen.Visible then
+	if input.KeyCode == Enum.KeyCode.K and not afkOverlay.Visible and not infoScreen.Visible and not webhookScreen.Visible then
 		mainPanel.Visible = not mainPanel.Visible
 	end
 end)
@@ -722,7 +990,7 @@ end)
 
 task.spawn(function()
 	local t = 0
-	while true do
+	while isScriptActive do
 		t = t + 0.018
 		local hue = t % 1
 		local brightness = 0.65 + 0.35 * math.abs(math.sin(t * math.pi * 2.8))
@@ -737,11 +1005,13 @@ task.spawn(function()
 		titleAccent.BackgroundColor3 = Color3.fromHSV((hue + 0.33) % 1, 1, 1)
 		if initScreen.Visible then cardTopLine.BackgroundColor3 = Color3.fromHSV(hue, 1, 1) end
 		if infoScreen.Visible then infoTopLine.BackgroundColor3 = Color3.fromHSV(hue, 1, 1) end
+		if webhookScreen.Visible then webhookTopLine.BackgroundColor3 = Color3.fromHSV(hue, 1, 1) end
 		task.wait(0.03)
 	end
 end)
 
 player.Idled:Connect(function()
+	if not isScriptActive then return end
 	statusLabel.Text = "⚡  Kick blocked!"
 	task.wait(2)
 	statusLabel.Text = "⬡  Status: Active"
@@ -768,6 +1038,7 @@ end)
 task.spawn(function()
 	task.wait(0.5)
 	for stepIndex, step in ipairs(loadSteps) do
+		if not isScriptActive then return end
 		loadText.Text = step.text
 		pctLabel.Text = math.floor(step.pct * 100) .. "%"
 		TweenService:Create(dots[stepIndex], TweenInfo.new(0.2), { BackgroundColor3 = Color3.fromRGB(0, 255, 200) }):Play()
@@ -775,6 +1046,7 @@ task.spawn(function()
 		task.wait(0.45)
 	end
 
+	if not isScriptActive then return end
 	task.wait(0.25)
 	badge.Text = "READY"
 	task.wait(0.4)
