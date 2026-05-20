@@ -43,17 +43,14 @@ end
 
 local FlySpeed = 16
 local LoopTour = true
-local LoopDelay = 0.65
+local LoopDelay = 0.3
 local AutoRespawn = false
 local RespawnDelay = 2.5
-local CPEndAction = "Jump"
+local CPEndAction = "D Tap"
 
 local Checkpoints = {
-	"-395.64,504.70,-26.95", "-395.92,503.80,-0.96", "-397.33,509.51,13.61",
-	"-398.18,511.03,27.23", "-399.94,508.31,42.49", "-401.95,503.75,58.01",
-	"-403.67,510.16,79.68", "-404.58,510.91,93.48", "-405.64,507.73,109.64",
-	"-406.67,503.76,125.43", "-407.96,510.60,140.38", "-408.72,510.42,151.98",
-	"-409.95,505.64,166.91", "-412.31,499.77,181.48", "-413.38,502.67,191.36",
+	"-399.31,503.80,6.78", "-403.53,503.80,74.53", "-408.98,503.80,124.51", 
+	"-412.58,503.18,177.27", "-412.31,498.80,186.98", "-412.31,498.80,192.98",
 }
 
 local isAutoFlying = false
@@ -157,7 +154,8 @@ local STATUS_H = 44
 local CREDITS_H = 30
 local BTN_H = 45
 local PADDING = 10
-local BODY_H = PADDING + STATUS_H + PADDING + CREDITS_H + PADDING + BTN_H + PADDING + BTN_H + PADDING
+local SLIDER_H = 50
+local BODY_H = PADDING + STATUS_H + PADDING + CREDITS_H + PADDING + BTN_H + PADDING + BTN_H + PADDING + SLIDER_H + PADDING
 
 local mainPanel = Instance.new("Frame", gui)
 mainPanel.Size = UDim2.new(0, PANEL_W, 0, TITLE_H + BODY_H + 4)
@@ -182,7 +180,7 @@ local titleLabel = Instance.new("TextLabel", titleBar)
 titleLabel.Size = UDim2.new(1, -90, 1, 0)
 titleLabel.Position = UDim2.new(0, 14, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.Text = "✦  Auto WIN + AntiAFK"
+titleLabel.Text = "🦴 Auto WIN + AntiAFK"
 titleLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 titleLabel.Font = Enum.Font.GothamBlack
 titleLabel.TextSize = 17
@@ -203,7 +201,7 @@ destroyBtn.BackgroundColor3 = Color3.fromRGB(160, 25, 25)
 destroyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 destroyBtn.Font = Enum.Font.GothamBlack
 destroyBtn.TextSize = 16
-destroyBtn.Text = "✕"
+destroyBtn.Text = "❌"
 destroyBtn.ZIndex = 10
 Instance.new("UICorner", destroyBtn).CornerRadius = UDim.new(0, 6)
 
@@ -231,7 +229,7 @@ statusLabel.BackgroundColor3 = Color3.fromRGB(10, 10, 18)
 statusLabel.Position = UDim2.new(0, 0, 0, PADDING)
 statusLabel.Size = UDim2.new(1, 0, 0, STATUS_H)
 statusLabel.Font = Enum.Font.GothamBold
-statusLabel.Text = "⬡  Status: Active"
+statusLabel.Text = "Made with Love 💕"
 statusLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
 statusLabel.TextSize = 17
 statusLabel.ZIndex = 4
@@ -242,7 +240,7 @@ creditsLabel.BackgroundColor3 = Color3.fromRGB(10, 10, 18)
 creditsLabel.Position = UDim2.new(0, 0, 0, PADDING + STATUS_H + PADDING)
 creditsLabel.Size = UDim2.new(1, 0, 0, CREDITS_H)
 creditsLabel.Font = Enum.Font.GothamBlack
-creditsLabel.Text = "Made by Toni den Alpha"
+creditsLabel.Text = "Made by Toni✌️"
 creditsLabel.TextSize = 18
 creditsLabel.ZIndex = 4
 Instance.new("UICorner", creditsLabel).CornerRadius = UDim.new(0, 6)
@@ -269,6 +267,61 @@ afkBtn.Text = "🌙  Enable AFK Screen"
 afkBtn.ZIndex = 4
 Instance.new("UICorner", afkBtn).CornerRadius = UDim.new(0, 10)
 
+local sliderFrame = Instance.new("Frame", bodyFrame)
+sliderFrame.Size = UDim2.new(1, -20, 0, SLIDER_H)
+sliderFrame.Position = UDim2.new(0, 10, 0, PADDING + STATUS_H + PADDING + CREDITS_H + PADDING + BTN_H + PADDING + BTN_H + PADDING)
+sliderFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+sliderFrame.ZIndex = 4
+Instance.new("UICorner", sliderFrame).CornerRadius = UDim.new(0, 8)
+
+local sliderTitle = Instance.new("TextLabel", sliderFrame)
+sliderTitle.Size = UDim2.new(1, -20, 0, 20)
+sliderTitle.Position = UDim2.new(0, 10, 0, 5)
+sliderTitle.BackgroundTransparency = 1
+sliderTitle.Text = "Loop Delay: " .. LoopDelay .. "s"
+sliderTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+sliderTitle.Font = Enum.Font.GothamBold
+sliderTitle.TextSize = 13
+sliderTitle.TextXAlignment = Enum.TextXAlignment.Left
+sliderTitle.ZIndex = 5
+
+local sliderBg = Instance.new("TextButton", sliderFrame)
+sliderBg.Size = UDim2.new(1, -20, 0, 8)
+sliderBg.Position = UDim2.new(0, 10, 0, 32)
+sliderBg.BackgroundColor3 = Color3.fromRGB(10, 10, 15)
+sliderBg.Text = ""
+sliderBg.AutoButtonColor = false
+sliderBg.ZIndex = 5
+Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
+
+local sliderFill = Instance.new("Frame", sliderBg)
+sliderFill.Size = UDim2.new(math.clamp(LoopDelay / 5, 0, 1), 0, 1, 0)
+sliderFill.BackgroundColor3 = Color3.fromRGB(0, 255, 200)
+sliderFill.ZIndex = 6
+Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1, 0)
+
+local isDraggingSlider = false
+sliderBg.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		isDraggingSlider = true
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		isDraggingSlider = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if isDraggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+		local pos = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+		sliderFill.Size = UDim2.new(pos, 0, 1, 0)
+		LoopDelay = math.floor(pos * 50) / 10 -- Range 0 to 5 seconds
+		sliderTitle.Text = "Loop Delay: " .. tostring(LoopDelay) .. "s"
+	end
+end)
+
 local initScreen = Instance.new("Frame", gui)
 initScreen.Size = UDim2.new(1, 0, 1, 0)
 initScreen.Position = UDim2.new(0, 0, 0, 0)
@@ -278,12 +331,17 @@ initScreen.ZIndex = 200
 initScreen.ClipsDescendants = true
 
 local card = Instance.new("Frame", initScreen)
-card.Size = UDim2.new(0, 380, 0, 240)
-card.Position = UDim2.new(0.5, -190, 0.5, -120)
-card.BackgroundColor3 = Color3.fromRGB(14, 14, 20)
+card.Size = UDim2.new(0, 420, 0, 260)
+card.Position = UDim2.new(0.5, -210, 0.5, -130)
+card.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 card.BorderSizePixel = 0
 card.ZIndex = 204
 Instance.new("UICorner", card).CornerRadius = UDim.new(0, 16)
+
+local cardStroke = Instance.new("UIStroke", card)
+cardStroke.Color = Color3.fromRGB(0, 255, 200)
+cardStroke.Transparency = 0.5
+cardStroke.Thickness = 2
 
 local cardTopLine = Instance.new("Frame", card)
 cardTopLine.Size = UDim2.new(1, 0, 0, 3)
@@ -384,7 +442,7 @@ local initCredits = Instance.new("TextLabel", card)
 initCredits.Size = UDim2.new(1, 0, 0, 20)
 initCredits.Position = UDim2.new(0, 0, 1, -24)
 initCredits.BackgroundTransparency = 1
-initCredits.Text = "by Toni den Alpha"
+initCredits.Text = "by Toni✌️"
 initCredits.TextColor3 = Color3.fromRGB(55, 60, 80)
 initCredits.Font = Enum.Font.GothamBold
 initCredits.TextSize = 10
@@ -399,8 +457,8 @@ infoScreen.ZIndex = 300
 infoScreen.Visible = false
 
 local infoContainer = Instance.new("Frame", infoScreen)
-infoContainer.Size = UDim2.new(0, 460, 0, 320)
-infoContainer.Position = UDim2.new(0.5, -230, 0.5, -160)
+infoContainer.Size = UDim2.new(0, 540, 0, 380)
+infoContainer.Position = UDim2.new(0.5, -270, 0.5, -190)
 infoContainer.BackgroundColor3 = Color3.fromRGB(14, 14, 22)
 infoContainer.BorderSizePixel = 0
 infoContainer.ZIndex = 301
@@ -415,43 +473,43 @@ infoTopLine.ZIndex = 302
 Instance.new("UICorner", infoTopLine).CornerRadius = UDim.new(0, 14)
 
 local infoTitle = Instance.new("TextLabel", infoContainer)
-infoTitle.Size = UDim2.new(1, 0, 0, 40)
+infoTitle.Size = UDim2.new(1, 0, 0, 50)
 infoTitle.Position = UDim2.new(0, 0, 0, 24)
 infoTitle.BackgroundTransparency = 1
 infoTitle.Text = "📋  Info & How to Use"
 infoTitle.TextColor3 = Color3.fromRGB(0, 255, 200)
 infoTitle.Font = Enum.Font.GothamBlack
-infoTitle.TextSize = 22
+infoTitle.TextSize = 26
 infoTitle.ZIndex = 302
 
 local infoBox = Instance.new("Frame", infoContainer)
-infoBox.Size = UDim2.new(1, -40, 0, 150)
-infoBox.Position = UDim2.new(0, 20, 0, 80)
+infoBox.Size = UDim2.new(1, -50, 0, 180)
+infoBox.Position = UDim2.new(0, 25, 0, 90)
 infoBox.BackgroundColor3 = Color3.fromRGB(10, 10, 16)
 infoBox.BorderSizePixel = 0
 infoBox.ZIndex = 302
 Instance.new("UICorner", infoBox).CornerRadius = UDim.new(0, 10)
 
 local infoText = Instance.new("TextLabel", infoBox)
-infoText.Size = UDim2.new(1, -24, 1, -24)
-infoText.Position = UDim2.new(0, 12, 0, 12)
+infoText.Size = UDim2.new(1, -30, 1, -30)
+infoText.Position = UDim2.new(0, 15, 0, 15)
 infoText.BackgroundTransparency = 1
 infoText.Text = "⚠️  Requirement Reminder:\n\n•  You need to be World 2!\n\nEnsure you have loaded into the correct world before execution to prevent mechanism alignment issues."
 infoText.TextColor3 = Color3.fromRGB(230, 235, 245)
 infoText.Font = Enum.Font.GothamMedium
-infoText.TextSize = 15
+infoText.TextSize = 17
 infoText.TextWrapped = true
 infoText.TextYAlignment = Enum.TextYAlignment.Top
 infoText.TextXAlignment = Enum.TextXAlignment.Left
 infoText.ZIndex = 303
 
 local infoCloseBtn = Instance.new("TextButton", infoContainer)
-infoCloseBtn.Size = UDim2.new(1, -40, 0, 46)
-infoCloseBtn.Position = UDim2.new(0, 20, 0, 250)
+infoCloseBtn.Size = UDim2.new(1, -50, 0, 54)
+infoCloseBtn.Position = UDim2.new(0, 25, 0, 290)
 infoCloseBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 130)
 infoCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 infoCloseBtn.Font = Enum.Font.GothamBlack
-infoCloseBtn.TextSize = 14
+infoCloseBtn.TextSize = 16
 infoCloseBtn.Text = "ACKNOWLEDGE AND CONTINUE"
 infoCloseBtn.ZIndex = 303
 Instance.new("UICorner", infoCloseBtn).CornerRadius = UDim.new(0, 10)
@@ -756,7 +814,7 @@ testWebhookBtn.MouseButton1Click:Connect(function()
 			["title"] = "🧪 Webhook Anchor Set",
 			["description"] = "Your webhook configuration is working perfectly. Future updates will be pushed directly to this message instead of creating new ones.",
 			["color"] = 5763719,
-			["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+			["footer"] = {["text"] = "Toni - Webhook Engine"}
 		}}
 		SendOrUpdateWebhook(data, true)
 		
@@ -784,14 +842,14 @@ task.spawn(function()
 			local elapsed = os.time() - scriptStartTime
 			
 			local data = {{
-				["title"] = "🚀 Auto WIN + AntiAFK Status",
+				["title"] = "🫰 Auto WIN + AntiAFK Status",
 				["color"] = 65480,
 				["fields"] = {
 					{["name"] = "🏆 Total Wins", ["value"] = FormatCompactNumber(currentWins), ["inline"] = true},
 					{["name"] = "📈 Session Wins Gained", ["value"] = "+" .. FormatCompactNumber(gained), ["inline"] = true},
 					{["name"] = "⏱️ Session Uptime", ["value"] = FormatTime(elapsed), ["inline"] = false}
 				},
-				["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+				["footer"] = {["text"] = "Toni - Webhook Engine"}
 			}}
 			
 			SendOrUpdateWebhook(data, false)
@@ -815,7 +873,7 @@ local function StopAutoFly()
 			["title"] = "⏸️ Auto WIN Stopped",
 			["description"] = "The tour has been paused or stopped.",
 			["color"] = 15548997,
-			["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+			["footer"] = {["text"] = "Toni - Webhook Engine"}
 		}}
 		SendOrUpdateWebhook(data, false)
 	end
@@ -832,7 +890,7 @@ local function StartAutoFly()
 		["title"] = "▶️ Auto WIN Started",
 		["description"] = "The tour has been initiated successfully.",
 		["color"] = 5763719,
-		["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+		["footer"] = {["text"] = "Toni - Webhook Engine"}
 	}}
 	SendOrUpdateWebhook(data, false)
 
@@ -887,17 +945,15 @@ local function StartAutoFly()
 			rootPart.Anchored = false
 			SetWHeld(false)
 
-			if CPEndAction == "Jump" then
-				humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-				task.wait(0.2)
-			elseif CPEndAction == "D Tap" then
-				if keypress then
-					keypress(0x44); task.wait(0.1); keyrelease(0x44)
-				else
-					VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.D, false, game)
-					task.wait(0.1)
-					VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.D, false, game)
-				end
+			-- Out of velocity fly into a little normal walk with 0.05s D tap
+			if keypress then
+				keypress(0x44)
+				task.wait(0.05)
+				keyrelease(0x44)
+			else
+				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.D, false, game)
+				task.wait(0.05)
+				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.D, false, game)
 			end
 
 			if not isAutoFlying or not isScriptActive then break end
@@ -955,7 +1011,7 @@ destroyBtn.MouseButton1Click:Connect(function()
 		["title"] = "🛑 Script Terminated",
 		["description"] = "The Auto WIN UI and script have been fully closed.",
 		["color"] = 16711680,
-		["footer"] = {["text"] = "Toni den Alpha - Webhook Engine"}
+		["footer"] = {["text"] = "Toni - Webhook Engine"}
 	}}
 	SendOrUpdateWebhook(data, false)
 
@@ -974,16 +1030,19 @@ card.Position = UDim2.new(0.5, -190, 0.53, -120)
 for _, obj in ipairs(card:GetDescendants()) do
 	if obj:IsA("TextLabel") then obj.TextTransparency = 1 end
 	if obj:IsA("Frame") then obj.BackgroundTransparency = 1 end
+	if obj:IsA("UIStroke") then obj.Transparency = 1 end
 end
 
 task.spawn(function()
 	task.wait(0.15)
-	TweenService:Create(card, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { BackgroundTransparency = 0, Position = UDim2.new(0.5, -190, 0.5, -120) }):Play()
+	TweenService:Create(card, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), { BackgroundTransparency = 0, Position = UDim2.new(0.5, -210, 0.5, -130) }):Play()
 	for _, obj in ipairs(card:GetDescendants()) do
 		if obj:IsA("TextLabel") then
 			TweenService:Create(obj, TweenInfo.new(0.5, Enum.EasingStyle.Quart), { TextTransparency = 0 }):Play()
 		elseif obj:IsA("Frame") then
 			TweenService:Create(obj, TweenInfo.new(0.5, Enum.EasingStyle.Quart), { BackgroundTransparency = 0 }):Play()
+		elseif obj:IsA("UIStroke") then
+			TweenService:Create(obj, TweenInfo.new(0.5, Enum.EasingStyle.Quart), { Transparency = 0.5 }):Play()
 		end
 	end
 end)
@@ -998,7 +1057,7 @@ task.spawn(function()
 		local size = 19 + math.floor(3 * math.sin(t * math.pi * 2.3))
 		local spaces = math.floor(math.abs(math.sin(t * math.pi * 1.5)) * 2)
 		local spacer = string.rep(" ", spaces)
-		creditsLabel.Text = spacer .. "Made by Toni den Alpha" .. spacer
+		creditsLabel.Text = spacer .. "Made by Toni✌️" .. spacer
 		creditsLabel.TextColor3 = Color3.fromHSV(hue, saturation, brightness)
 		creditsLabel.TextSize = size
 
@@ -1014,7 +1073,7 @@ player.Idled:Connect(function()
 	if not isScriptActive then return end
 	statusLabel.Text = "⚡  Kick blocked!"
 	task.wait(2)
-	statusLabel.Text = "⬡  Status: Active"
+	statusLabel.Text = "Made with love 💕"
 end)
 
 local loadSteps = {
@@ -1036,6 +1095,7 @@ infoCloseBtn.MouseButton1Click:Connect(function()
 end)
 
 task.spawn(function()
+	SetExternalUiVisible(false)
 	task.wait(0.5)
 	for stepIndex, step in ipairs(loadSteps) do
 		if not isScriptActive then return end
@@ -1051,14 +1111,15 @@ task.spawn(function()
 	badge.Text = "READY"
 	task.wait(0.4)
 
+	-- Fade out the card elements, keep dark background to prevent UI gap
 	for _, obj in ipairs(initScreen:GetDescendants()) do
 		if obj:IsA("TextLabel") then TweenService:Create(obj, TweenInfo.new(0.4, Enum.EasingStyle.Quart), { TextTransparency = 1 }):Play()
-		elseif obj:IsA("Frame") then TweenService:Create(obj, TweenInfo.new(0.4, Enum.EasingStyle.Quart), { BackgroundTransparency = 1 }):Play() end
+		elseif obj:IsA("Frame") then TweenService:Create(obj, TweenInfo.new(0.4, Enum.EasingStyle.Quart), { BackgroundTransparency = 1 }):Play()
+		elseif obj:IsA("UIStroke") then TweenService:Create(obj, TweenInfo.new(0.4, Enum.EasingStyle.Quart), { Transparency = 1 }):Play() end
 	end
-	TweenService:Create(initScreen, TweenInfo.new(0.45, Enum.EasingStyle.Quart, Enum.EasingDirection.In), { BackgroundTransparency = 1 }):Play()
+	
 	task.wait(0.5)
+	
 	initScreen.Visible = false
-
-	SetExternalUiVisible(false)
 	infoScreen.Visible = true
 end)
