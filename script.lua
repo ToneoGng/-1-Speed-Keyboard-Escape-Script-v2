@@ -43,10 +43,10 @@ end
 
 local FlySpeed = 16
 local LoopTour = true
-local LoopDelay = 0.3
+local LoopDelay = 0.7
 local AutoRespawn = false
 local RespawnDelay = 2.5
-local CPEndAction = "D Tap"
+local CPEndAction = "Jump"
 
 local Checkpoints = {
 	"-399.31,503.80,6.78", "-403.53,503.80,74.53", "-408.98,503.80,124.51", 
@@ -80,7 +80,7 @@ local function UpdateDynamicSpeed()
 	local char = player.Character
 	local hum = char and char:FindFirstChildOfClass("Humanoid")
 	if hum then
-		FlySpeed = hum.WalkSpeed + 10
+		FlySpeed = hum.WalkSpeed + 20
 	end
 end
 
@@ -97,15 +97,32 @@ if player.Character then
 	task.spawn(SetupSpeedListener, player.Character)
 end
 
+local function GetWebhookInfo(url)
+	local clean = url:gsub("^%s*(.-)%s*$", "%1")
+	clean = clean:gsub("discord%.com", "webhook.lewisakura.moe")
+	clean = clean:gsub("discordapp%.com", "webhook.lewisakura.moe")
+	local baseUrl, query = clean:match("^([^?]+)(%?.*)$")
+	if not baseUrl then
+		baseUrl = clean
+		query = ""
+	end
+	return baseUrl, query
+end
+
 local function SendOrUpdateWebhook(embedData, forceSend)
 	if (not webhookEnabled and not forceSend) or webhookUrl == "" or not requestFunc then return end
 	
-	local payload = { embeds = embedData }
+	local baseUrl, query = GetWebhookInfo(webhookUrl)
+	local payload = {
+		username = "Toni's Engine",
+		avatar_url = "https://i.imgur.com/k23x3Z8.png",
+		embeds = embedData
+	}
 	
 	if currentWebhookMessageId then
 		local success, response = pcall(function()
 			return requestFunc({
-				Url = webhookUrl .. "/messages/" .. currentWebhookMessageId,
+				Url = baseUrl .. "/messages/" .. currentWebhookMessageId .. query,
 				Method = "PATCH",
 				Headers = {["Content-Type"] = "application/json"},
 				Body = HttpService:JSONEncode(payload)
@@ -120,10 +137,10 @@ local function SendOrUpdateWebhook(embedData, forceSend)
 	end
 	
 	if not currentWebhookMessageId then
-		local separator = string.find(webhookUrl, "?") and "&" or "?"
+		local separator = (query == "") and "?wait=true" or (query .. "&wait=true")
 		local success, response = pcall(function()
 			return requestFunc({
-				Url = webhookUrl .. separator .. "wait=true",
+				Url = baseUrl .. separator,
 				Method = "POST",
 				Headers = {["Content-Type"] = "application/json"},
 				Body = HttpService:JSONEncode(payload)
@@ -811,10 +828,17 @@ testWebhookBtn.MouseButton1Click:Connect(function()
 	webhookUrl = webhookUrlInput.Text
 	if webhookUrl ~= "" then
 		local data = {{
-			["title"] = "🧪 Webhook Anchor Set",
-			["description"] = "Your webhook configuration is working perfectly. Future updates will be pushed directly to this message instead of creating new ones.",
-			["color"] = 5763719,
-			["footer"] = {["text"] = "Toni - Webhook Engine"}
+			["title"] = "🚀 Webhook Configuration Verified",
+			["description"] = "Connection to the webhook was successful! This message will act as your anchor. All future live updates will dynamically edit this embed to prevent channel spam.",
+			["color"] = tonumber(0x00FFC8),
+			["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+			["author"] = {
+				["name"] = player.Name .. " • System Test",
+				["icon_url"] = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=150&height=150&format=png"
+			},
+			["footer"] = {
+				["text"] = "Toni • Auto WIN Framework"
+			}
 		}}
 		SendOrUpdateWebhook(data, true)
 		
@@ -842,14 +866,23 @@ task.spawn(function()
 			local elapsed = os.time() - scriptStartTime
 			
 			local data = {{
-				["title"] = "🫰 Auto WIN + AntiAFK Status",
-				["color"] = 65480,
-				["fields"] = {
-					{["name"] = "🏆 Total Wins", ["value"] = FormatCompactNumber(currentWins), ["inline"] = true},
-					{["name"] = "📈 Session Wins Gained", ["value"] = "+" .. FormatCompactNumber(gained), ["inline"] = true},
-					{["name"] = "⏱️ Session Uptime", ["value"] = FormatTime(elapsed), ["inline"] = false}
+				["title"] = "📊 Live Session Statistics",
+				["color"] = tonumber(0x00FFC8),
+				["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+				["author"] = {
+					["name"] = player.Name .. " • Live Session",
+					["icon_url"] = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=150&height=150&format=png"
 				},
-				["footer"] = {["text"] = "Toni - Webhook Engine"}
+				["fields"] = {
+					{["name"] = "🏆 Current Total Wins", ["value"] = "```\n" .. FormatCompactNumber(currentWins) .. "\n```", ["inline"] = true},
+					{["name"] = "📈 Session Gains", ["value"] = "```diff\n+ " .. FormatCompactNumber(gained) .. "\n```", ["inline"] = true},
+					{["name"] = "⏱️ Session Uptime", ["value"] = "```\n" .. FormatTime(elapsed) .. "\n```", ["inline"] = false},
+					{["name"] = "⚙️ Engine Speed", ["value"] = "```\n" .. tostring(math.floor(FlySpeed)) .. " FPS\n```", ["inline"] = true},
+					{["name"] = "📡 Status", ["value"] = "```yaml\nActive and Farming\n```", ["inline"] = true}
+				},
+				["footer"] = {
+					["text"] = "Toni • Auto WIN Framework"
+				}
 			}}
 			
 			SendOrUpdateWebhook(data, false)
@@ -870,10 +903,17 @@ local function StopAutoFly()
 	
 	if isScriptActive then
 		local data = {{
-			["title"] = "⏸️ Auto WIN Stopped",
-			["description"] = "The tour has been paused or stopped.",
-			["color"] = 15548997,
-			["footer"] = {["text"] = "Toni - Webhook Engine"}
+			["title"] = "⏸️ Session Paused",
+			["description"] = "The automatic flight tour has been paused or stopped by the user.",
+			["color"] = tonumber(0xFFB000),
+			["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+			["author"] = {
+				["name"] = player.Name .. " • Session Manager",
+				["icon_url"] = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=150&height=150&format=png"
+			},
+			["footer"] = {
+				["text"] = "Toni • Auto WIN Framework"
+			}
 		}}
 		SendOrUpdateWebhook(data, false)
 	end
@@ -887,10 +927,17 @@ local function StartAutoFly()
 	btn.BackgroundColor3 = Color3.fromRGB(180, 35, 35)
 
 	local data = {{
-		["title"] = "▶️ Auto WIN Started",
-		["description"] = "The tour has been initiated successfully.",
-		["color"] = 5763719,
-		["footer"] = {["text"] = "Toni - Webhook Engine"}
+		["title"] = "▶️ Session Started",
+		["description"] = "The automatic flight tour has been initiated successfully.",
+		["color"] = tonumber(0x00FFC8),
+		["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+		["author"] = {
+			["name"] = player.Name .. " • Session Manager",
+			["icon_url"] = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=150&height=150&format=png"
+		},
+		["footer"] = {
+			["text"] = "Toni • Auto WIN Framework"
+		}
 	}}
 	SendOrUpdateWebhook(data, false)
 
@@ -945,15 +992,21 @@ local function StartAutoFly()
 			rootPart.Anchored = false
 			SetWHeld(false)
 
-			-- Out of velocity fly into a little normal walk with 0.05s D tap
+			-- Out of velocity fly into a jump
+			task.wait(0.1) -- small delay to allow physics to update and character to ground
+			if humanoid then
+				humanoid.Jump = true
+				pcall(function() humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end)
+			end
+			
 			if keypress then
-				keypress(0x44)
+				keypress(0x20)
 				task.wait(0.05)
-				keyrelease(0x44)
+				keyrelease(0x20)
 			else
-				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.D, false, game)
+				VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
 				task.wait(0.05)
-				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.D, false, game)
+				VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
 			end
 
 			if not isAutoFlying or not isScriptActive then break end
@@ -1009,9 +1062,16 @@ destroyBtn.MouseButton1Click:Connect(function()
 
 	local data = {{
 		["title"] = "🛑 Script Terminated",
-		["description"] = "The Auto WIN UI and script have been fully closed.",
-		["color"] = 16711680,
-		["footer"] = {["text"] = "Toni - Webhook Engine"}
+		["description"] = "The Auto WIN UI and script have been fully closed by the user.",
+		["color"] = tonumber(0xFF3333),
+		["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ"),
+		["author"] = {
+			["name"] = player.Name .. " • Session Manager",
+			["icon_url"] = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=150&height=150&format=png"
+		},
+		["footer"] = {
+			["text"] = "Toni • Auto WIN Framework"
+		}
 	}}
 	SendOrUpdateWebhook(data, false)
 
