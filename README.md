@@ -16,7 +16,7 @@
 ## 📜 Usage / Installation
 
 1. Launch Roblox and join **+1 Speed Keyboard Escape**.
-2. Open your preferred Roblox executor (e.g., Krnl, Fluxus, Delta, etc.).
+2. Open your preferred Roblox executor (e.g., WAVE, Solara, Real, ...).
 3. Copy and paste the following `loadstring` into your executor:
 
 ```lua
