@@ -14,26 +14,5 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/ToneoGng/Script/refs/
 ---
 
 📊 Performance & Statistics
-We tracked the win generation sequence over a 5-minute interval to project the hourly rates. Here is the math behind the 250M Wins/Hour claim:
+<img width="305" height="272" alt="Screenshot 2026-05-23 104718" src="https://github.com/user-attachments/assets/d70912fe-ff18-428b-981a-66903466e2d7" />
 
-Sequence Tracked:
-42.75m ➔ 46.75m ➔ 51.0m ➔ 55.0m ➔ 59.0m ➔ 63.25m
-
-Minute-by-Minute Intervals:
-+4.0m | +4.25m | +4.0m | +4.0m | +4.25m
-
-📈 The Math
-Total Growth: 20.5m wins (in 5 minutes)
-
-Average per Minute: 4.1m wins
-
-Hourly Projection: 246m wins/hour (~250m/h)
-
-⚙️ How to Use
-Open -1 Speed Keyboard Escape.
-
-Attach your preferred executor.
-
-Paste the script from above into your executor's workspace.
-
-Click execute and watch the wins roll in!
